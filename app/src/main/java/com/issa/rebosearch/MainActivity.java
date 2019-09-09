@@ -9,7 +9,9 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,41 +21,88 @@ import java.io.IOException;
 import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
-    EditText mSearchBoxEditText;
 
-    TextView mUrlDisplayTextView;
+    private EditText mSearchBoxEditText;
 
-    TextView mSearchResultsTextView;
+    private TextView mUrlDisplayTextView;
+
+    private TextView mSearchResultsTextView;
+
+    // COMPLETED (12) Create a variable to store a reference to the error message TextView
+    private TextView mErrorMessageDisplay;
+
+    // COMPLETED (24) Create a ProgressBar variable to store a reference to the ProgressBar
+    private ProgressBar mLoadingIndicator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //this is id for search list
-        mSearchBoxEditText = (EditText) findViewById(R.id.search_list);
+        mSearchBoxEditText = (EditText) findViewById(R.id.et_search_box);
 
-        //this is id for url display
-        mUrlDisplayTextView = (TextView)findViewById(R.id.tv_url_display);
+        mUrlDisplayTextView = (TextView) findViewById(R.id.tv_url_display);
+        mSearchResultsTextView = (TextView) findViewById(R.id.tv_github_search_results_json);
 
-        //this is id for url result
-        mSearchResultsTextView = (TextView)findViewById(R.id.tv_gitub_result_json);
+        // COMPLETED (13) Get a reference to the error TextView using findViewById
+        mErrorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display);
+
+        // COMPLETED (25) Get a reference to the ProgressBar using findViewById
+        mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
     }
 
+    /**
+     * This method retrieves the search text from the EditText, constructs the
+     * URL (using {@link NetworkUtils}) for the github repository you'd like to find, displays
+     * that URL in a TextView, and finally fires off an AsyncTask to perform the GET request using
+     * our {@link GithubQueryTask}
+     */
     private void makeGithubSearchQuery() {
         String githubQuery = mSearchBoxEditText.getText().toString();
         URL githubSearchUrl = NetworkUtils.buildUrl(githubQuery);
         mUrlDisplayTextView.setText(githubSearchUrl.toString());
-        String githubSearchResults = null;
-
         new GithubQueryTask().execute(githubSearchUrl);
-
-
     }
 
-    public class GithubQueryTask extends AsyncTask<URL, Void, String>{
+    // COMPLETED (14) Create a method called showJsonDataView to show the data and hide the error
+    /**
+     * This method will make the View for the JSON data visible and
+     * hide the error message.
+     * <p>
+     * Since it is okay to redundantly set the visibility of a View, we don't
+     * need to check whether each view is currently visible or invisible.
+     */
+    private void showJsonDataView() {
+        // First, make sure the error is invisible
+        mErrorMessageDisplay.setVisibility(View.INVISIBLE);
+        // Then, make sure the JSON data is visible
+        mSearchResultsTextView.setVisibility(View.VISIBLE);
+    }
 
-        // COMPLETED (2) Override the doInBackground method to perform the query. Return the results. (Hint: You've already written the code to perform the query)
+    // COMPLETED (15) Create a method called showErrorMessage to show the error and hide the data
+    /**
+     * This method will make the error message visible and hide the JSON
+     * View.
+     * <p>
+     * Since it is okay to redundantly set the visibility of a View, we don't
+     * need to check whether each view is currently visible or invisible.
+     */
+    private void showErrorMessage() {
+        // First, hide the currently visible data
+        mSearchResultsTextView.setVisibility(View.INVISIBLE);
+        // Then, show the error
+        mErrorMessageDisplay.setVisibility(View.VISIBLE);
+    }
+
+    public class GithubQueryTask extends AsyncTask<URL, Void, String> {
+
+        // COMPLETED (26) Override onPreExecute to set the loading indicator to visible
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mLoadingIndicator.setVisibility(View.VISIBLE);
+        }
+
         @Override
         protected String doInBackground(URL... params) {
             URL searchUrl = params[0];
@@ -65,11 +114,18 @@ public class MainActivity extends AppCompatActivity {
             }
             return githubSearchResults;
         }
-        // COMPLETED (3) Override onPostExecute to display the results in the TextView
+
         @Override
         protected void onPostExecute(String githubSearchResults) {
+            // COMPLETED (27) As soon as the loading is complete, hide the loading indicator
+            mLoadingIndicator.setVisibility(View.INVISIBLE);
             if (githubSearchResults != null && !githubSearchResults.equals("")) {
+                // COMPLETED (17) Call showJsonDataView if we have valid, non-null results
+                showJsonDataView();
                 mSearchResultsTextView.setText(githubSearchResults);
+            } else {
+                // COMPLETED (16) Call showErrorMessage if the result is null in onPostExecute
+                showErrorMessage();
             }
         }
     }
@@ -81,12 +137,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item) {
         int itemThatWasClickedId = item.getItemId();
-        if (itemThatWasClickedId == R.id.action_search){
-
+        if (itemThatWasClickedId == R.id.action_search) {
             makeGithubSearchQuery();
-
             return true;
         }
         return super.onOptionsItemSelected(item);

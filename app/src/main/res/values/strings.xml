@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Rebo Search</string>
+    <string name="error_massage">Failed to get results, please try again </string>
 </resources>
